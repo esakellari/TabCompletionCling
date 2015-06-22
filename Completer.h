@@ -4,18 +4,21 @@
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/Allocator.h"
+#include "cling/Interpreter/Transaction.h"
 
 class Completer : public clang::PrintingCodeCompleteConsumer {
 
-	cling::Transaction *T;
 
-	public:
-	 Completer(const CodeCompleteOptions &CodeCompleteOpts, cling::Transaction &T):PrintingCodeCompleteConsumer(CodeCompleteOpts,llvm::outs()){
-		 cling::Transaction *T = 0;
-	 }
+public:
+Completer(const CodeCompleteOptions &CodeCompleteOpts):PrintingCodeCompleteConsumer(CodeCompleteOpts,llvm::outs()){}
 
-	void callBack(){
-		T->setIssuedDiags()
-	}
+  void callBack(cling::Transaction **T){
+    
+    //cling::Transaction diags;
+    cling::Transaction::IssuedDiags diags;
+    diags = (*T)->getIssuedDiags();
+    
+           //   T->setIssuedDiags()
+  }
 
 };

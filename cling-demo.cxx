@@ -138,9 +138,9 @@ int main(int argc, char** argv) {
   PP.SetCodeCompletionPoint(Entry, 3, 11);
   //PP.setCodeCompletionFinished(false);
   const CodeCompleteOptions &Opts = CI->getFrontendOpts().CodeCompleteOpts;
-  cling::Transaction *T;
-  Completer * completer = new Completer(Opts, T);
-
+  Completer * completer = new Completer(Opts);
+  
+  
   //clang::CodeCompleteConsumer * codeCons = new clang::PrintingCodeCompleteConsumer(Opts, llvm::outs());
   CI->setCodeCompletionConsumer(completer);
   clang::Sema & sem = CI->getSema();
@@ -155,9 +155,12 @@ int main(int argc, char** argv) {
     //bool OldSuppressAllDiagnostics(PP.getDiagnostics()
     //                                 .getSuppressAllDiagnostics());
     //PP.getDiagnostics().setSuppressAllDiagnostics(true);
-
+    
+cling::Transaction *T = 0;
 
     interp.declare(R"code(#include "test_header.h")code", &T);
+    completer->callBack(&T);
+    
     //T->setIssuedDiags(cling::Transaction::kErrors);
 
     //PP.getDiagnostics().setSuppressAllDiagnostics(OldSuppressAllDiagnostics);
