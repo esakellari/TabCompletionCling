@@ -1,13 +1,3 @@
-#include "cling/Interpreter/Interpreter.h"
-#include "cling/Interpreter/Value.h"
-
-#include "clang/Frontend/CompilerInstance.h"
-#include "clang/Basic/LangOptions.h"
-#include "clang/Lex/Preprocessor.h"
-#include "clang/Sema/Sema.h"
-
-#include "clang/Parse/RAIIObjectsForParser.h"
-
 #include "Completer.h"
 
 #include <string>
@@ -142,6 +132,9 @@ int main(int argc, char** argv) {
   
   
   //clang::CodeCompleteConsumer * codeCons = new clang::PrintingCodeCompleteConsumer(Opts, llvm::outs());
+  cling::Transaction *T = 0;
+  completer->setTransaction(&T);
+  
   CI->setCodeCompletionConsumer(completer);
   clang::Sema & sem = CI->getSema();
   sem.CodeCompleter = completer;
@@ -156,10 +149,9 @@ int main(int argc, char** argv) {
     //                                 .getSuppressAllDiagnostics());
     //PP.getDiagnostics().setSuppressAllDiagnostics(true);
     
-cling::Transaction *T = 0;
+   
 
     interp.declare(R"code(#include "test_header.h")code", &T);
-    completer->callBack(&T);
     
     //T->setIssuedDiags(cling::Transaction::kErrors);
 
