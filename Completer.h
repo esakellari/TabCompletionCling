@@ -17,21 +17,37 @@
 
 class Completer : public clang::PrintingCodeCompleteConsumer {
 
-  cling::Transaction *T;
-public:
+  cling::Interpreter *m_interp;
+  cling::Transaction::IssuedDiags m_diags;
+  clang::CompilerInstance *m_compilerInst;
+  public:
   
-  Completer(const CodeCompleteOptions &CodeCompleteOpts):PrintingCodeCompleteConsumer(CodeCompleteOpts,llvm::outs()){}
-  void setTransaction(cling::Transaction *tr){
-    T = tr;
+  Completer(const CodeCompleteOptions &CodeCompleteOpts, cling::Interpreter *interp, clang::CompilerInstance *ci):
+    PrintingCodeCompleteConsumer(CodeCompleteOpts,llvm::outs()){
+    m_interp = interp;
+    m_compilerInst = ci;
   }
-  
+
+  void setTransaction(cling::Transaction *&tr);
+
   void ProcessCodeCompleteResults(clang::Sema &S, clang::CodeCompletionContext Context,
                                   clang::CodeCompletionResult *Results,
                                   unsigned NumResults);
 
 };
 
-void Completer::ProcessCodeCompleteResults(clang::Sema &S, clang::CodeCompletionContext Context,clang::CodeCompletionResult *Results, unsigned NumResults){
+void Completer::setTransaction(cling::Transaction *&tr){
+  //T = tr;
+}
+void Completer::ProcessCodeCompleteResults(clang::Sema &S,
+                                           clang::CodeCompletionContext Context,
+                                           clang::CodeCompletionResult *Results,
+                                           unsigned NumResults){
   clang::PrintingCodeCompleteConsumer::ProcessCodeCompleteResults(S, Context, Results, NumResults);
+  const cling::Transaction * transaction = m_interp->getCurrentTransaction();
+  cling::Transaction *nonconst_transaction = const_cast<cling::Transaction *>(transaction);
+  nonconst_transaction->setIssuedDiags(cling::Transaction::kErrors);
 
+  //m_compilerInst->getPreprocessor().Lex(const_cast<clang::Token&>(m_interp->getParser().getCurToken()));
+ // m_interp->getParser().SkipUntil(clang::tok::eof);
 }

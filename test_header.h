@@ -1,4 +1,6 @@
-#include "cling/Interpreter/Interpreter.h"
-void f() {
-  gCling->getVersion();
+int f() {
+  printf("\n\n%s\n\n\n", gCling->getVersion());
+  return 0;
 }
+int evaluateMe = f();
+

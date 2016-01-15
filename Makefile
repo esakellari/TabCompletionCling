@@ -6,8 +6,8 @@ SYSLIBS := $(shell llvm-config --system-libs)
 LLVMRESDIR := $(shell llvm-config --prefix)
 LIBS := -lclingInterpreter -lclingUtils -lclangFrontend -lclangSerialization -lclangDriver -lclangCodeGen -lclangParse -lclangSema -lclangEdit -lclangAnalysis -lclangAST -lclangLex -lclangBasic $(shell llvm-config --libs bitwriter mcjit orcjit native option ipo profiledata instrumentation objcarcopts) $(SYSLIBS)
 
-cling-demo: cling-demo.cxx
+codecompletion: cling-demo.cxx
 	$(CXX) -o $@ '-DLLVMRESDIR="$(LLVMRESDIR)"' $(CXXFLAGS) $^ $(LDFLAGS) $(LIBS)
 
 clean:
-	rm -f cling-demo
+	rm -f codecompletion

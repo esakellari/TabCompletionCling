@@ -5,55 +5,6 @@
 #include <sstream>
 #include <iostream>
 
-
-void simple(cling::Interpreter& interp) {
-  // Compile a function (and possibly some other code) and get a fairly raw
-  // function pointer to it.
-  void* funPtrVoid
-    = interp.compileFunction("MyFunc",
-                             "extern \"C\" double MyFunc(int v) {"
-                             "  return v + 0.42; }");
-
-  // We know its type.
-  typedef double (*fun_t)(int);
-  fun_t funPtr = (fun_t)funPtrVoid;
-  std::cout << "Got a " << (*funPtr)(12) << std::endl;
-}
-
-
-void less_simple(cling::Interpreter& interp) {
-  // Inject some code into the interpreter.
-  interp.declare(R"code(
-#include <string>
-#include <vector>
-#include <sstream>
-#include <algorithm>
-#include <iterator>
-
-template <typename ELEMENT>
-std::string toString(const std::vector<ELEMENT> & vec) {
-  std::stringstream sstr;
-  std::copy(begin(vec), end(vec), std::ostream_iterator<ELEMENT>(sstr, ","));
-  return sstr.str();
-}
-)code");
-
-  std::vector<double> vecComp{{ 12., 42., 0., -10. }};
-
-  // Used to transport a value out of the interpreter, including lifetime
-  // management.
-  cling::Value val;
-
-  // Invoke a function in the interpreter, passing a reference to an object
-  // from compiled code.
-  std::stringstream strCode;
-  strCode << "toString(*(std::vector<double>*)" << (void*)&vecComp << ");";
-  interp.evaluate(strCode.str(), val);
-
-  // See whether everything is sane:
-  std::cout << *((std::string*)val.getPtr()) << std::endl;
-}
-
 namespace clang {
 
   ///\brief Cleanup Parser state after a failed lookup.
@@ -115,26 +66,32 @@ namespace clang {
   };
 }
 
-
 int main(int argc, char** argv) {
 
   cling::Interpreter interp(argc, argv, LLVMRESDIR);
+
+  // Prerequisites to simplify the problem.
+  // Unless we declare it outside the header file included, we have this error:
+  // /cling/src/tools/cling/lib/Interpreter/../../../clang/include/clang/Sema/Sema.h:6832:
+  // clang::Sema::SavePendingInstantiationsRAII::~SavePendingInstantiationsRAII(): Assertion
+  // `S.PendingInstantiations.empty() && "there shouldn't be any pending instantiations"' failed.
+  // Aborted (core dumped)
+  interp.declare(R"code(#include "cling/Interpreter/Interpreter.h")code");
+
   clang::CompilerInstance* CI = interp.getCI();
   clang::Preprocessor & PP = CI->getPreprocessor();
 
   clang::FileManager & fileMgr = PP.getFileManager();
   const clang::FileEntry *Entry = fileMgr.getFile("test_header.h");
 
-  PP.SetCodeCompletionPoint(Entry, 3, 11);
-  //PP.setCodeCompletionFinished(false);
+
   const CodeCompleteOptions &Opts = CI->getFrontendOpts().CodeCompleteOpts;
-  Completer * completer = new Completer(Opts);
-  
-  
-  //clang::CodeCompleteConsumer * codeCons = new clang::PrintingCodeCompleteConsumer(Opts, llvm::outs());
+  cling::Interpreter *interp_pointer = &interp;
+  Completer * completer = new Completer(Opts, interp_pointer, CI);
+  PP.SetCodeCompletionPoint(Entry, 2, 34);
+
   cling::Transaction *T = 0;
-  completer->setTransaction(&T);
-  
+
   CI->setCodeCompletionConsumer(completer);
   clang::Sema & sem = CI->getSema();
   sem.CodeCompleter = completer;
@@ -142,30 +99,20 @@ int main(int argc, char** argv) {
   {
     clang::ParserStateRAII parserRAII(interp.getParser());
 
-    //
     //  Tell the diagnostic engine to ignore all diagnostics.
     //
     //bool OldSuppressAllDiagnostics(PP.getDiagnostics()
     //                                 .getSuppressAllDiagnostics());
     //PP.getDiagnostics().setSuppressAllDiagnostics(true);
-    
-   
 
     interp.declare(R"code(#include "test_header.h")code", &T);
-    
-    //T->setIssuedDiags(cling::Transaction::kErrors);
 
     //PP.getDiagnostics().setSuppressAllDiagnostics(OldSuppressAllDiagnostics);
   }
-
-  /*PP.clearCodeCompletionHandler();
+  CI->setCodeCompletionConsumer(nullptr);
+  PP.clearCodeCompletionHandler();
   sem.CodeCompleter = nullptr;
-
-  interp.declare(R"code(#include "cling/Interpreter/Interpreter.h"
-                         int f() {
-                         gCling->getVersion();
-                 })code");
-*/
+  interp.declare(R"code(#include "test_header.h")code");
 
   return 0;
 }
